@@ -2,15 +2,17 @@
 <html>
 <head>
     <title>Platypus Login</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename = 'index.css') }} ">
+    <link rel="stylesheet" type="text/css" href="/static/index.css ">
 </head>
 <body>
-    <form action="/login" method="post">
+    <form action="/login" method="post" class="loginform">
+        <h1>Platypus Admin Login</h1>
+        {% module xsrf_form_html() %}
         <label for="username">Username</label>
         <input type="text" name="username" id="username">
         <label for="password">Password</label>
         <input type="password" name="password" id="password">
-        <input type="submit" value="Submit">
+        <input type="submit" value="Submit" class="submit">
     </form>
 </body>
 </html>

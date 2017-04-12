@@ -3,34 +3,44 @@
 <head>
     <meta charset="utf-8">
     <title>Platypus Admin</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename = 'admin.css') }}">
+    <link rel="stylesheet" href="/static/index.css">
 </head>
 
 <body>
     <h1>Platypus Admin</h1>
-
-    <h2>Edit Server List</h2>
-    <form action="/ac/new" method="post">
-        <label for="id">Panel ID</label>
-        <input type="id" name="id" id="id">
-        <label for="name">Panel Name</label>
+    <div class="container">
+    <div class="item register">
+    <h2>Register Server</h2>
+    <form action="/admin" method="post">
+        {% module xsrf_form_html() %}
+        <label for="id">Server ID</label>
+        <input type="id" name="id" id="id" placeholder="optional">
+        <label for="name">Server Name</label>
         <input type="name" name="name" id="name">
-        <label for="hostname">Panel Hostname</label>
+        <label for="hostname">Server Hostname</label>
         <input type="hostname" name="hostname" id="hostname">
-        <label for="location">Panel Geolocation</label>
-        <input type="location" name="location" id="location">
-        <input type="submit" value="Submit">
+        <input type="submit" value="Register">
     </form>
+    </div><div class="item servers">
+    <h2>Remove Servers</h2>
     <table id="table">
-    <th>Panel</th>
-    <th>Actions</th>
-    {% for s in servers %}
-    <tr id="{{ s[0] }}">
-        <td>{{ s[1] }}</td>
-        <td><button onclick="Remove({{ s[0] }})">Remove</button></td>
-    </tr>
-    {% endfor %}
-</table>
+        <th>id</th>
+        <th>Name</th>
+        <th>Hostname</th>
+        <th>UUID</th>
+        <th></th>
+        {% for s in servers %}
+        <tr id="{{s[0]}}">
+        <td>{{s[0]}}</td>
+        <td>{{s[1]}}</td>
+        <td>{{s[2]}}</td>
+        <td><input type="text" readonly="true" value="{{s[3]}}" id="uid"></td>
+        <td><button>Remove</button></td>
+        {% end %}
+        </table>
+
+    </div>
+    </div>
 <script>
     function Request(url, callback, method = "GET") {
         var request = new XMLHttpRequest();
@@ -47,7 +57,7 @@
     }
     function Remove(panel){
         console.log("Removing panel " +panel)
-        Request("/ac/remove/"+panel,RefreshPage(),"DELETE");
+        Request("/admin"+panel,RefreshPage(),"DELETE");
     }
 </script>
 </body>

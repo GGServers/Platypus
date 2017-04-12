@@ -1,3 +1,7 @@
+![https://img.shields.io/badge/Status-Feature%20Freeze-blue.svg](https://img.shields.io/badge/Status-Code%20Freeze-blue.svg)
+
+Currently in feature freeze to polish for v3.0.
+
 # Platypus
 
 [Live Master Branch](https://status.ggserv.xyz)
@@ -12,11 +16,8 @@ Monitors and reports statistics of your server infrastucture, including usage st
 
 ### Current Features
  - Setup script
- - Scan servers from a SQL database
- - Log scan results to database
- - Auto-update uptime or downtime
- - Auto-post to Slack with scan results
- - Fetch and save server usage statistics
+ - Websocket-based uptime monitoring
+ - Auto-post to Slack when server goes offline
  - Provide live server usage statistics with web frontend
  - Simple JSON API for building apps
 
@@ -39,75 +40,52 @@ Finally you can run `python App.py` and go navigate to `127.0.0.1:8080/login` to
 To expose it to the world, I recommend using an [nginx proxy](https://www.nginx.com/resources/admin-guide/reverse-proxy/).
 ## Configuration
 
-```
-{
-    "comments": [
-        "This is the config file for Platypus.",
-        "These comments are ignored. If you need",
-        "any guidance see the README",
-        "Default password is p1atyPus, run python src/Login.py to",
-        "generate a new one."
-    ],
-    "enable_slackbot": false, // Slackbot intergration
-    "enable_webserver": true, // Webserver toggle
-    "webserver_port": 8080, // Webserver port
-    "slack_api_key": "", // Slack API key 
-    "slack_channel": "", // Channel you'd like to post to
-    "slack_interval": 3600, // Seconds between Slack post
-    "scan_interval": 300, // Seconds betweeen scan
-    "scan_timeout": 5, // Seconds before connection times out
-    				   // More accurate = higher, faster = lower
-    "stats_path": "/status/platypus.php", // Location of status script
-    "admin_username": "admin", // Admin username
-    "admin_password": "$2b$12$q1oiev5KEoOPvWJe7b5xuOm3PU61Ks9c2Y9e4ZFzS1YzJtsFLBBBK", // Admin password (salted & hashed) 
-    "sql_user":"root", // MariaDB Username
-    "sql_host":"localhost", // DB Host
-    "sql_pass": "", // DB Password
-    "sql_db": "server" // DB Table
-}
-```
+| Key | Default Value | What is |
+| --- | ------------- | ------- |
+| enable_slackbot | false | Enable automated Slack reports |
+| enable_webserver | true | Enable web frontend and API | 
+| webserver_port | 8080 | Port for webserver to run on |
+| slack_api_key | | [API key for Slack posting](https://github.com/slackapi/python-slackclient)
+| admin_username | admin | Username for admin interface |
+| admin_password | | Password for admin interface |
+| sql_user | root | SQL database username |
+| sql_pass | | SQL database password |
+| sql_host | localhost | SQL database host |
+| sql_db | server | SQL data table |
 
 ## Script
 
-Included in this repo is a custom script written in various
-languages that Platypus will attempt to fetch for the various
-server stats (memory, CPU and disk usage). It is written in
-Python and PHP, and you can choose whichever one you feel like
-using - Platypus does not care which version you use, and will
-still check if your server is offline if it results in a 404.
+Included in the `Scripts` folder is the node-side `aor.py` script. This should be
+deployed to the machines you would like to monitor, and modified to point towards
+your master server. A docker image is available [here](#) if you would prefer to 
+use that. You can also feel free to use your own custom script, however it has to
+be fully websocket compatible. See below about the data passed to the master.
 
-### Using Python
- - Install Python 3
- - `pip install psutil`
- - Move `Stats.py` to your server
- - `chmod +x Stats.py`
- - `screen ./Stats.py`
-(Screen is recommended)
- - [Set up a proxy with nginx](https://www.nginx.com/resources/admin-guide/reverse-proxy/)
+You'll want to edit `config.json` and deploy it alongside aor.py, otherwise
+it will use default values, and probably will not connect to your master. 
 
-### Using PHP
- - Move `index.php` to whever your web files are
-  - Feel free to rename `index.php` and put it wherever
- - Visit the path that corresponds with where you put it
+### Requirements:
 
-### Returned data
- - Used CPU
- - Used memory
- - Used disk space
+ - Python 3.x
+ - websocket
+ - psutil
 
- `{"cpu": 6, "memory": 38, "disk": 8}`
+`pip install websocket psutil`
 
-Some stats may vary slightly between script, this is simply due to the methods used to get
-the statistics.
+### Deploying (Script)
 
-## Paths
+If you would like to tinker with the script, take a peek at `Scripts/generate_aor_packages.py`
+and modify the values to match up to your database. It will automagically create
+zip packages containing the `aor.py` and `aor_config.json` files (already filled
+out too).
 
-| URL | What | Method |
-| --- | ---- | ---- |
-| `/` | Main homepage, loads all servers | `GET` |
-| `/raw` | Returns raw cache data | `GET` |
-| `/fetch/<panel>` | Get server usage stats live (CORS middleman) | `GET` |
-| `/login` | Login page or POST route | `GET`, `POST` |
-| `/admin` | Admin management page | `GET` (requires admin cookie) |
-| `/ac/remove/<panel>` | Admin route for removing server. | `DELETE` (requires admin cookie) |
-| `/ac/new` | Create new server in database | `POST` |
+Alternatively, you'll want to edit `Scripts/config.json` to match the values in your database,
+namely changing the `"UUID":` field. You can leave the interval alone. 
+
+Then you can copy the config and `aor.py` script to your server and run the script, 
+preferably in a `screen` session. For the most part you can leave the script alone
+at this point, you do not need to set up a reverse proxy or the likes.
+
+### Deploying (Docker)
+
+Coming soon
