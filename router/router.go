@@ -1,11 +1,15 @@
 package router
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/gmemstr/platypus/common"
+	"github.com/gmemstr/platypus/pluginhandler"
 	"github.com/gmemstr/platypus/stats"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -53,6 +57,10 @@ func Init() *mux.Router {
 	r.Handle("/getstats", Handle(
 		StatsWs(),
 	)).Methods("GET")
+
+	r.Handle("/poll", Handle(
+		handlePoll(),
+	)).Methods("GET", "POST")
 
 	return r
 }
@@ -120,3 +128,41 @@ func rootHandler() common.Handler {
 		return common.ReadAndServeFile(file, w)
 	}
 }
+
+func handlePoll() common.Handler {
+	return func(rc *common.RouterContext, w http.ResponseWriter, r *http.Request) *common.HTTPError {
+		authkey := r.Header.Get("X-PLATYPUS-AUTH")
+		appType := r.Header.Get("X-PLATYPUS-TYPE")
+
+		secretKey, err := ioutil.ReadFile(".secret")
+		if err != nil {
+			return nil
+		}
+		key := string(secretKey)
+		if key != authkey {
+			return nil
+		}
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		payload := buf.String()
+
+		processed := pluginhandler.ExecuteHook(payload, "IncomingData")
+		s := stats.Server{Custom: processed, Type: appType}
+
+		stats.Servers[appType] = s
+
+		response := pluginhandler.ExecuteHook("", "OutgoingData")
+		fmt.Fprintln(w, response)
+		jsonServers, err := json.MarshalIndent(stats.Servers, "", "  ")
+		if err != nil {
+			return nil
+		}
+		err = ioutil.WriteFile("stats.json", jsonServers, 0644)
+		if err != nil {
+			return nil
+		}
+
+		return nil
+	}
+}
+

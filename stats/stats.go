@@ -5,22 +5,26 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gmemstr/platypus/common"
+	"github.com/gmemstr/platypus/pluginhandler"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"net/http"
 )
 
 type UsageStats struct {
-	Hostname string `json:"hostname"`
-	Cpu    float64 `json:"cpu"`
-	Memory float64 `json:"memory"`
-	Disk   float64 `json:"disk"`
-	Secret string  `json:"secret"`
+	Type     string  `json:"type"`
+	Hostname string  `json:"hostname"`
+	Cpu      float64 `json:"cpu"`
+	Memory   float64 `json:"memory"`
+	Disk     float64 `json:"disk"`
+	Secret   string  `json:"secret"`
 }
 
 type Server struct {
-	Stats   UsageStats `json:"stats"`
-	Online  bool       `json:"online"`
+	Stats  UsageStats `json:"stats"`
+	Type   string     `json:"type"`
+	Custom string     `json:"custom"`
+	Online bool       `json:"online"`
 }
 
 var Servers map[string] Server
@@ -49,6 +53,11 @@ func Handler() common.Handler {
 				_ = SetOffline(hostname)
 				break
 			}
+
+			// Fire off incoming data hook.
+			modifiedJson := pluginhandler.ExecuteHook(string(message), "IncomingData")
+			message = []byte(modifiedJson)
+
 			stats := UsageStats{}
 			err = json.Unmarshal(message, &stats)
 			if err != nil {
@@ -67,7 +76,10 @@ func Handler() common.Handler {
 			if err != nil {
 				break
 			}
-			err = c.WriteMessage(mt, []byte(""))
+			// Fire off outgoing data hook.
+			reply := pluginhandler.ExecuteHook("", "OutgoingData")
+
+			err = c.WriteMessage(mt, []byte(reply))
 			if err != nil {
 				break
 			}
@@ -92,6 +104,7 @@ func SetOffline(hostname string) error {
 	if err != nil {
 		return err
 	}
+	_ = pluginhandler.ExecuteHook(hostname, "Offline")
 
 	return nil
 }
@@ -99,11 +112,13 @@ func SetOffline(hostname string) error {
 func WriteStats(hostname string, stats UsageStats) error {
 	server, ok := Servers[hostname]
 	if ok {
+		server.Type = "stats"
 		server.Stats = stats
 		server.Online = true
 	}
 	if !ok {
 		server = Server{
+			Type: "stats",
 			Stats: stats,
 			Online: true,
 		}

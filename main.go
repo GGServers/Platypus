@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gmemstr/platypus/common"
+	pluginhandler "github.com/gmemstr/platypus/pluginhandler"
 	"github.com/gmemstr/platypus/router"
 	"github.com/gmemstr/platypus/stats"
 	"github.com/go-yaml/yaml"
@@ -17,6 +18,7 @@ import (
 
 func main() {
 	GenFiles()
+	pluginhandler.RegisterPlugins()
 
 	file, err := ioutil.ReadFile("config.yml")
 	if err != nil {

@@ -17,6 +17,7 @@ import (
 )
 
 type UsageStats struct {
+	Type     string  `json:"type"`
 	Hostname string  `json:"hostname"`
 	Cpu      float64 `json:"cpu"`
 	Memory   float64 `json:"memory"`
@@ -106,6 +107,7 @@ func main() {
 // Fetch usage stats using gopsutil.
 func GetStats() (UsageStats, error) {
 	stats := UsageStats{
+		Type: "server",
 	}
 	diskUsage, err := disk.Usage("/")
 	if err != nil {
