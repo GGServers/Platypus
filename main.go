@@ -5,19 +5,20 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gmemstr/platypus/common"
-	pluginhandler "github.com/gmemstr/platypus/pluginhandler"
-	"github.com/gmemstr/platypus/router"
-	"github.com/gmemstr/platypus/stats"
-	"github.com/go-yaml/yaml"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gmemstr/platypus/common"
+	"github.com/gmemstr/platypus/pluginhandler"
+	"github.com/gmemstr/platypus/router"
+	"github.com/gmemstr/platypus/stats"
+	"github.com/go-yaml/yaml"
 )
 
 func main() {
-	GenFiles()
+	genFiles()
 	pluginhandler.RegisterPlugins()
 
 	file, err := ioutil.ReadFile("config.yml")
@@ -57,10 +58,10 @@ func main() {
 }
 
 // Generate barebones files required to run.
-func GenFiles() {
+func genFiles() {
 	if _, err := os.Stat(".secret"); os.IsNotExist(err) {
 		fmt.Println("Generating secret key to .secret, use this to configure your servers")
-		SecretKey()
+		secretKey()
 	}
 	if _, err := os.Stat("stats.json"); os.IsNotExist(err) {
 		err = ioutil.WriteFile("stats.json", []byte("{}"), 0644)
@@ -76,8 +77,8 @@ func GenFiles() {
 	}
 }
 
-func SecretKey() {
-	key, err := GenerateRandomString(32)
+func secretKey() {
+	key, err := generateRandomString(32)
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +89,7 @@ func SecretKey() {
 }
 
 // From https://stackoverflow.com/questions/32349807/how-can-i-generate-a-random-int-using-the-crypto-rand-package
-func GenerateRandomBytes(n int) ([]byte, error) {
+func generateRandomBytes(n int) ([]byte, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	// Note that err == nil only if we read len(b) bytes.
@@ -101,7 +102,7 @@ func GenerateRandomBytes(n int) ([]byte, error) {
 
 // GenerateRandomString returns a URL-safe, base64 encoded
 // securely generated random string.
-func GenerateRandomString(s int) (string, error) {
-	b, err := GenerateRandomBytes(s)
+func generateRandomString(s int) (string, error) {
+	b, err := generateRandomBytes(s)
 	return hex.EncodeToString(b), err
 }

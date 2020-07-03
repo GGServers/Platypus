@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 type TelegramConfiguration struct {
@@ -25,15 +26,15 @@ func Offline(data string) (string, error) {
 		configStrings = append(configStrings, scanner.Text())
 	}
 	config := TelegramConfiguration{
-		ApiKey:   configStrings[0],
-		Channels: configStrings[1],
+		ApiKey:   extractConfigValue(configStrings[0]),
+		Channels: extractConfigValue(configStrings[1]),
 	}
 
 	requestData := fmt.Sprintf(`?chat_id=%v&text=%v`,
-		config.Channels, url.QueryEscape(data + " just went offline!"))
+		config.Channels, url.QueryEscape(data+" just went offline!"))
 	requestUrl := "https://api.telegram.org/bot" + config.ApiKey
 
-	request, err := http.NewRequest("GET", requestUrl + "/sendMessage" + requestData, nil)
+	request, err := http.NewRequest("GET", requestUrl+"/sendMessage"+requestData, nil)
 	if err != nil {
 		return "", err
 	}
@@ -41,7 +42,15 @@ func Offline(data string) (string, error) {
 
 	client := &http.Client{}
 	resp, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
 	defer resp.Body.Close()
 
 	return "", nil
+}
+
+// Dirty way of extracting the values.
+func extractConfigValue(line string) string {
+	return strings.SplitN(strings.Replace(line, " ", "", -1), ":", 2)[1]
 }

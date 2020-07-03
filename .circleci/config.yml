@@ -1,105 +1,81 @@
 version: 2.1
-orbs:
-  platypus-status: gmem/platypus-status@0.0.7
 jobs:
   build:
-    working_directory: /go/src/github.com/gmemstr/platypus
     docker:
-      - image: circleci/golang:1.9
+      - image: cimg/go:1.14
     steps:
-      - platypus-status/started:
-          job-name: "Platypus Build"
       - checkout
-      - run: go get github.com/gorilla/mux
-      - run: go get github.com/gorilla/websocket
-      - run: go get github.com/shirou/gopsutil
-      - run: go get github.com/go-yaml/yaml
-      - run: go get github.com/containous/yaegi
       - run: go build
       - store_artifacts:
-          path: /go/src/github.com/gmemstr/platypus/platypus
-      - persist_to_workspace:
-          root: /go
-          paths:
-            - .
+          path: platypus
 
-  deploy:
-    machine:
-      enabled: true
-    steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "f9:00:6d:24:bb:56:4b:68:29:6c:69:a5:ac:48:45:94"
-      - attach_workspace:
-          at: .
-      - platypus-status/custom:
-          job-name: "Platypus Build"
-          message: "Deploying to production"
-      - run:
-          name: Stop Platypus Service
-          command: |
-            ssh gsimmer@chicago.gmem.ca -p 66 "sudo systemctl stop platypus; sudo systemctl status platypus || true"
-      - run:
-          name: Deploy built files
-          command: |
-            rsync -e "ssh -p 66" -aR  src/github.com/gmemstr/platypus/web/ src/github.com/gmemstr/platypus/platypus gsimmer@chicago.gmem.ca:/home/gsimmer/platypus
-      - run:
-          name: Restart Platypus services
-          command: |
-            ssh gsimmer@chicago.gmem.ca -p 66 "sudo systemctl start platypus; sudo systemctl restart platypus-client; sudo systemctl status platypus || true"
+  # deploy:
+  #   machine:
+  #     enabled: true
+  #   steps:
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "f9:00:6d:24:bb:56:4b:68:29:6c:69:a5:ac:48:45:94"
+  #     - attach_workspace:
+  #         at: .
+  #     - platypus-status/custom:
+  #         job-name: "Platypus Build"
+  #         message: "Deploying to production"
+  #     - run:
+  #         name: Stop Platypus Service
+  #         command: |
+  #           ssh gsimmer@chicago.gmem.ca -p 66 "sudo systemctl stop platypus; sudo systemctl status platypus || true"
+  #     - run:
+  #         name: Deploy built files
+  #         command: |
+  #           rsync -e "ssh -p 66" -aR  src/github.com/gmemstr/platypus/web/ src/github.com/gmemstr/platypus/platypus gsimmer@chicago.gmem.ca:/home/gsimmer/platypus
+  #     - run:
+  #         name: Restart Platypus services
+  #         command: |
+  #           ssh gsimmer@chicago.gmem.ca -p 66 "sudo systemctl start platypus; sudo systemctl restart platypus-client; sudo systemctl status platypus || true"
 
-  deploy-staging:
-    machine:
-      enabled: true
-    steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "51:df:67:8b:a9:71:ad:b4:f6:49:96:e6:67:7b:98:cc"
-      - attach_workspace:
-          at: .
-      - platypus-status/custom:
-          job-name: "Platypus Build"
-          message: "Deploying to staging"
-      - run: cd src/github.com/gmemstr/platypus
-      - run: pwd && ls -alh
-      - run:
-          name: Stop Platypus Service
-          command: |
-            ssh platypus@platypus.gmem.dev "sudo systemctl stop platypus; sudo systemctl status platypus || true"
-      - run:
-          name: Deploy built files
-          command: |
-            rsync -aR  src/github.com/gmemstr/platypus/web/ src/github.com/gmemstr/platypus/platypus platypus@platypus.gmem.dev:/home/platypus/platypus
-      - run:
-          name: Restart Platypus services
-          command: |
-            ssh platypus@platypus.gmem.dev "sudo systemctl start platypus; sudo systemctl restart platypus-client; sudo systemctl status platypus || true"
-
-  finished:
-    machine:
-      enabled: true
-    steps:
-      - platypus-status/finished:
-          job-name: "Platypus Build"
+  # deploy-staging:
+  #   machine:
+  #     enabled: true
+  #   steps:
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "51:df:67:8b:a9:71:ad:b4:f6:49:96:e6:67:7b:98:cc"
+  #     - attach_workspace:
+  #         at: .
+  #     - platypus-status/custom:
+  #         job-name: "Platypus Build"
+  #         message: "Deploying to staging"
+  #     - run: cd src/github.com/gmemstr/platypus
+  #     - run: pwd && ls -alh
+  #     - run:
+  #         name: Stop Platypus Service
+  #         command: |
+  #           ssh platypus@platypus.gmem.dev "sudo systemctl stop platypus; sudo systemctl status platypus || true"
+  #     - run:
+  #         name: Deploy built files
+  #         command: |
+  #           rsync -aR  src/github.com/gmemstr/platypus/web/ src/github.com/gmemstr/platypus/platypus platypus@platypus.gmem.dev:/home/platypus/platypus
+  #     - run:
+  #         name: Restart Platypus services
+  #         command: |
+  #           ssh platypus@platypus.gmem.dev "sudo systemctl start platypus; sudo systemctl restart platypus-client; sudo systemctl status platypus || true"
 
 workflows:
   version: 2
   build-and-deploy:
     jobs:
       - build
-      - deploy-staging:
-          requires:
-            - build
-          filters:
-            branches:
-              only: staging
-      - deploy:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
-      - finished:
-          requires:
-            - deploy-staging
-            - deploy
+      # Removed until new servers are available.
+      # - deploy-staging:
+      #     requires:
+      #       - build
+      #     filters:
+      #       branches:
+      #         only: staging
+      # - deploy:
+      #     requires:
+      #       - build
+      #     filters:
+      #       branches:
+      #         only: master

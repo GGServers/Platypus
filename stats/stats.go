@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/gmemstr/platypus/common"
 	"github.com/gmemstr/platypus/pluginhandler"
 	"github.com/gorilla/websocket"
-	"io/ioutil"
-	"net/http"
 )
 
 type UsageStats struct {
@@ -27,7 +28,7 @@ type Server struct {
 	Online bool       `json:"online"`
 }
 
-var Servers map[string] Server
+var Servers map[string]Server
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -118,8 +119,8 @@ func WriteStats(hostname string, stats UsageStats) error {
 	}
 	if !ok {
 		server = Server{
-			Type: "stats",
-			Stats: stats,
+			Type:   "stats",
+			Stats:  stats,
 			Online: true,
 		}
 	}

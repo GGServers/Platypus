@@ -2,22 +2,24 @@ package pluginhandler
 
 import (
 	"fmt"
-	"github.com/containous/yaegi/interp"
-	"github.com/containous/yaegi/stdlib"
-	"github.com/go-yaml/yaml"
 	"io/ioutil"
 	"regexp"
 	"strings"
+
+	"github.com/containous/yaegi/interp"
+	"github.com/containous/yaegi/stdlib"
+	"github.com/go-yaml/yaml"
 )
 
-var Plugins map[string] Plugin
+var Plugins map[string]Plugin
+
 // @TODO: This will cache for available hooks for a hook.
-var PluginsForHooks map[string] HookFunc
+var PluginsForHooks map[string]HookFunc
 
 type Plugin struct {
-	Name string `yaml:"name"`
-	Version string `yaml:"version"`
-	Homepage string `yaml:"homepage"`
+	Name            string `yaml:"name"`
+	Version         string `yaml:"version"`
+	Homepage        string `yaml:"homepage"`
 	ImplementsHooks []HookFunc
 }
 
@@ -28,8 +30,8 @@ type HookFunc struct {
 	Contents string
 }
 
-// Searches through plugins directory and registers plugins with a valid
-// plugin.yml file. Should only be run at startup.
+// RegisterPlugins searches through plugins directory and registers plugins 
+// with a valid plugin.yml file. Should only be run at startup.
 // @TODO: Investigate reloading?
 func RegisterPlugins() {
 	Plugins = make(map[string]Plugin)
@@ -62,17 +64,17 @@ func RegisterPlugins() {
 		}
 		pluginContent := string(pluginContents)
 
-		hookRe := regexp.MustCompile(`((func)\s\w+\(.*\)(\s|.)*{(\s|.)*})`)
-		funcs := hookRe.FindStringSubmatch(pluginContent)
+		hookRe := regexp.MustCompile(`(func )[A-Z][a-z]+\(.+\)\s?{(.|\n)*?\n}`)
+		funcs := hookRe.FindAllStringSubmatch(pluginContent, -1)
 
 		for range funcs {
-			re := regexp.MustCompile(`((func)\s\w+)`)
+			re := regexp.MustCompile(`((func )[A-Z][a-z]+)`)
 			foundFuncName := re.FindStringSubmatch(pluginContent)
 			realFuncName := strings.TrimLeft(foundFuncName[1], "func ")
 
 			hookFunc := HookFunc{
-				Type: realFuncName,
-				Func: pluginName + "." + realFuncName,
+				Type:     realFuncName,
+				Func:     pluginName + "." + realFuncName,
 				Contents: pluginContent,
 			}
 
